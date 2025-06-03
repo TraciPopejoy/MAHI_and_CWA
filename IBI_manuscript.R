@@ -3,7 +3,7 @@ theme_wendell<- theme_classic()+ # ggplot theme to make plots for wendell
    theme(panel.background=element_rect(fill=NA, color='black'),
         strip.background=element_blank())
 # mahi scores from Wendell
-mahi.scores <- read_excel('C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/IBI manuscript/All sites_2001_2002_2003.xlsx') %>% # fixing some typos below
+mahi.scores <- read_excel('All sites_2001_2002_2003.xlsx') %>% # fixing some typos below
   rename(SiteCode = `Site code`) %>%
   filter(!is.na(SiteCode), !is.na(Stream)) %>%
   mutate(SiteCode = case_match(SiteCode, 'ILPIC' ~ 'ILPIS','MNLES'~'MNLSR',
@@ -11,7 +11,7 @@ mahi.scores <- read_excel('C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/I
                                .default = SiteCode)) %>%
   select(-starts_with('...'))
 # bring in the site-level data
-sites<-read.csv('C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/MusselDeclines_site_loc.csv') %>% 
+sites<-read.csv('MusselDeclines_site_loc.csv') %>% 
   filter((SiteCode %in% mahi.scores$SiteCode),
          SiteCode != 'KYSLT') %>%
   bind_rows(mahi.scores[,1:6] %>% filter(SiteCode %in% c('MNCAN','MNMIN','MNPOM','MNSNK','MNSTR'))%>%
@@ -22,7 +22,7 @@ sites %>% filter(substr(HUC8, 1,1)=='8')
 
 mahi.scores$SiteCode[(mahi.scores$SiteCode %in% sites$SiteCode == F)] # Mahoning creek in exclude group in Wendells data
 
-ibis_d <- read.csv('C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/IBI manuscript/ibis_near_sites_250109.csv') %>%
+ibis_d <- read.csv('ibis_near_sites_250109.csv') %>%
   st_as_sf(coords=c('X','Y'), crs=st_crs(sites))
 
 # bring in the standardization information for each state and taxa
@@ -162,7 +162,7 @@ ibi.mm %>% group_by(SiteCode, taxa) %>%
   distinct(SiteCode, taxa, mean.standardized.ibi, .keep_all=T) %>%
   as_tibble() %>% select(SiteCode, starts_with('MAHI'), taxa, mean.standardized.ibi, sd.standardized.ibi) %>%
   pivot_wider(names_from=taxa, values_from = c(mean.standardized.ibi, sd.standardized.ibi)) %>% 
-  write.csv('C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/IBI manuscript/filtered_ibis_MAHI_250411.csv', row.names = F)
+  write.csv('filtered_ibis_MAHI_250411.csv', row.names = F)
 View(ibi.m)
 
 ibi.mm %>% ungroup() %>% summarize(n_distinct(SiteCode))
@@ -508,7 +508,7 @@ nrow(ibi.m.f.pg); nrow(ibi.m.m.pg)
 ibi.metrics
 
 # impairment category and MAHI scores ----
-lat303<-read_csv("C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/IBI manuscript/site_EPA_impairment_codes_250109.csv")%>%
+lat303<-read_csv("site_EPA_impairment_codes_250109.csv")%>%
   # adding mahi scores
   left_join(mahi.scores, by='SiteCode') %>%
   filter(SiteCode != 'KYSLT',
@@ -592,7 +592,7 @@ for(var in c('MAHI density', 'MAHI pop growth', 'MAHI p_richness', 'MAHI recruit
 met.mods
 
 # use designations =======
-use.ass<-readRDS('C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/IBI manuscript/303d_Use_Assessments_250109.rds')
+use.ass<-readRDS('303d_Use_Assessments_250109.rds')
 lat.use<-use.ass %>% group_by(assessmentUnitIdentifier) %>% 
   filter(max(as.numeric(reportingCycleText))==as.numeric(reportingCycleText)) %>%
 filter(assessmentUnitIdentifier %in% 
@@ -763,7 +763,7 @@ us.F.df %>% group_by(use.category, useAF) %>% summarize(median(`MAHI composite`,
 us.F.df %>% group_by(use.category, useAF) %>% summarize(IQR(`MAHI composite`, na.rm=T))
 
 # causes of impairments ------
-cause303<-read.csv('C:/Users/tdubose/OneDrive - DOI/tpd/pre-appointment/IBI manuscript/303d_source_cause_groups_latest_250109.csv') %>% 
+cause303<-read.csv('303d_source_cause_groups_latest_250109.csv') %>% 
   left_join(mahi.scores %>% select(SiteCode, `MAHI composite`), by='SiteCode') %>%
   filter(!is.na(`MAHI composite`)) %>%
   filter(assessmentUnitIdentifier %in% (lat303 %>% filter(latest %in% c('4A', '5')) %>% pull(assessmentUnitIdentifier))) %>%
@@ -1389,54 +1389,6 @@ cause303.true %>%
   filter(!is.na(`MAHI composite`)) %>%
   ggplot()+geom_text(aes(y=grp, x=`MAHI composite`, label=SiteCode))
 
-# compare water quality to mahi scores
-pc_scores<-read_excel('C:/Users/Owner/Dropbox (Personal)/!Research/!MusselDeclines/finalized data/mussel_declines_water_chemistry.xlsx',
-           sheet=5) %>% left_join(mahi.scores, by=c('SiteCode'='Site code'))
-plot_grid(
-  pc_scores %>% pivot_longer(c('PC1', 'PC2')) %>%
-    ggplot(aes(x=value, y=`MAHI composite`))+
-    geom_smooth(method='lm')+geom_point()+
-    facet_wrap(~name,scales='free_x'), 
-  pc_scores %>% pivot_longer(c('PC1', 'PC2')) %>%
-    pivot_longer(starts_with("MAHI"), names_to = 'MAHI metric', values_to='MAHI score') %>%
-  filter(`MAHI metric` != 'MAHI composite') %>%
-    ggplot(aes(x=value, y=`MAHI score`))+
-    geom_smooth(method='lm')+geom_point()+
-    facet_grid(`MAHI metric`~name), ncol=1, rel_heights = c(.3, .6))
-
-
-
-summary(lm(`MAHI composite`~PC1+PC2, data=pc_scores))
-met.mods.pc<-NULL
-for(var in c('MAHI density', 'MAHI pop growth', 'MAHI p_richness', 'MAHI recruit')){
-  pc_sm<-pc_scores %>% rename(MahiMet=all_of(var)) %>%
-    select(SiteCode, PC1, PC2, MahiMet) %>%
-    filter(!is.na(MahiMet))
-  mod<-summary(lm(MahiMet~PC1+PC2, data=pc_sm))
-  met.mods.pc<-bind_rows(met.mods.pc,
-                         bind_cols(
-                      data.frame(variable=var, 
-                                 df1=as.numeric(mod$fstatistic[2]), df2=as.numeric(mod$fstatistic[3]),
-                                 n=nrow(pc_sm), adj.r.sq=mod$adj.r.squared,
-                                 Fval=mod$fstatistic[1]),
-                      bind_cols(mod$coefficients, rowname=rownames(mod$coefficients))))
-}
-met.mods.pc
-
-met.mods.pc %>% distinct(variable, df1, df2, Fval, adj.r.sq) %>%
-  mutate(pval=1-round(pf(Fval, df1, df2),3))
-
-met.mods.pc %>% filter(`Pr(>|t|)` < 0.05, rowname != '(Intercept)')
-
-# writing out the IBI data to save -----
-library(writexl)
-write_xlsx(list('Mean IBI scores by Site'=f.m.comp.df,
-                'Closest and most recent scores'=ibi.m,
-                'All scores within 50km'=read.csv('results/ibis_near_sites_240327.csv') %>%
-                  filter(dist.to.site.m < 50000) %>%
-                  left_join(sites %>% as_tibble() %>% dplyr::select(SiteCode, State), by='SiteCode') %>%
-                  left_join(ibi.stand, by=c('State','taxa'))),  
-           'results/mussel_declines_IBI_scores.xlsx')
 
 # OLD CODE: partial correlation ======
 # trying more complicated linear model
