@@ -4,7 +4,7 @@ library(readxl); library(cowplot); library(MetBrewer)
 # want to create a spreadsheet with info on taxa, ibi, site, date, location
 ibis<-NULL
 # locations of our sites
-sites<-read.csv('data/site_loc.csv') %>% 
+sites<-read.csv('../DeclinesMussels/data/site_loc.csv') %>% 
   bind_rows(read.csv('IBI_data/extraMNsites.csv') %>% mutate(State = 'Minnesota')) %>% 
   filter(!is.na('Latitude'), !is.na(Longitude), !is.na(Stream)) %>%
   st_as_sf(coords=c('Longitude','Latitude'), crs = 4269)
